@@ -8,11 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomUser() (User, error) {
-	randUser, err := testQueries.CreateUser(context.Background(), util.RandomString(8))
-	return randUser, err
-}
-
 func TestCreateUser(t *testing.T) {
 	arg := util.RandomString(7)
 
