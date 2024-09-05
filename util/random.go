@@ -32,3 +32,8 @@ func RandomUser() string {
 	n := RandomInt(3, 8)
 	return RandomString(int(n))
 }
+
+func RandomTitle() string {
+	n := RandomInt(5, 20)
+	return RandomString(int(n))
+}
