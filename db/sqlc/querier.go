@@ -18,6 +18,7 @@ type Querier interface {
 	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
 	DeleteUser(ctx context.Context, userID int32) error
 	EditTile(ctx context.Context, arg EditTileParams) error
+	GetList(ctx context.Context, listID int32) (List, error)
 	GetUser(ctx context.Context, userID int32) (User, error)
 	UncheckPoint(ctx context.Context, pointID int32) error
 	UserPoints(ctx context.Context, userID int32) ([]UserPointsRow, error)

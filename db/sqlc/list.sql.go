@@ -49,3 +49,20 @@ func (q *Queries) EditTile(ctx context.Context, arg EditTileParams) error {
 	_, err := q.db.ExecContext(ctx, editTile, arg.ListID, arg.Title)
 	return err
 }
+
+const getList = `-- name: GetList :one
+SELECT list_id, created_by, title, created_at from lists
+WHERE list_id = $1
+`
+
+func (q *Queries) GetList(ctx context.Context, listID int32) (List, error) {
+	row := q.db.QueryRowContext(ctx, getList, listID)
+	var i List
+	err := row.Scan(
+		&i.ListID,
+		&i.CreatedBy,
+		&i.Title,
+		&i.CreatedAt,
+	)
+	return i, err
+}
