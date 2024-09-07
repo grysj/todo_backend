@@ -7,9 +7,6 @@ package db
 
 import (
 	"context"
-	"time"
-
-	"github.com/lib/pq"
 )
 
 const checkPoint = `-- name: CheckPoint :exec
@@ -25,77 +22,77 @@ func (q *Queries) CheckPoint(ctx context.Context, pointID int32) error {
 const createPoint = `-- name: CreatePoint :one
 INSERT INTO list_points (
     list_id,
-    point
+    content,
+    position,
+    added_by
 ) VALUES (
-    $1, $2
-) RETURNING point_id, list_id, point, checked, created_at
+    $1, $2, $3, $4
+) RETURNING point_id, list_id, content, position, checked, created_at, added_by
 `
 
 type CreatePointParams struct {
-	ListID int32    `json:"list_id"`
-	Point  []string `json:"point"`
+	ListID   int32  `json:"list_id"`
+	Content  string `json:"content"`
+	Position int32  `json:"position"`
+	AddedBy  int32  `json:"added_by"`
 }
 
 func (q *Queries) CreatePoint(ctx context.Context, arg CreatePointParams) (ListPoint, error) {
-	row := q.db.QueryRowContext(ctx, createPoint, arg.ListID, pq.Array(arg.Point))
+	row := q.db.QueryRowContext(ctx, createPoint,
+		arg.ListID,
+		arg.Content,
+		arg.Position,
+		arg.AddedBy,
+	)
 	var i ListPoint
 	err := row.Scan(
 		&i.PointID,
 		&i.ListID,
-		pq.Array(&i.Point),
+		&i.Content,
+		&i.Position,
 		&i.Checked,
 		&i.CreatedAt,
+		&i.AddedBy,
 	)
 	return i, err
 }
 
-const uncheckPoint = `-- name: UncheckPoint :exec
-UPDATE list_points SET checked=false
-WHERE point_id = $1
+const getMaxPositionOrDefault = `-- name: GetMaxPositionOrDefault :one
+SELECT COALESCE(MAX(position), 1) AS max_position
+FROM list_points
+WHERE list_id = $1
 `
 
-func (q *Queries) UncheckPoint(ctx context.Context, pointID int32) error {
-	_, err := q.db.ExecContext(ctx, uncheckPoint, pointID)
-	return err
+func (q *Queries) GetMaxPositionOrDefault(ctx context.Context, listID int32) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getMaxPositionOrDefault, listID)
+	var max_position interface{}
+	err := row.Scan(&max_position)
+	return max_position, err
 }
 
-const userPoints = `-- name: UserPoints :many
-SELECT l.list_id, l.title, lp.point_id, lp.point, lp.checked, lp.created_at
-FROM lists l
-JOIN list_points lp ON l.list_id = lp.list_id
-WHERE l.list_id IN (
-    SELECT p.list_id
-    FROM permissions p
-    WHERE p.user_id = $1
-)
-ORDER BY l.created_at ASC, lp.created_at ASC
+const getPointsByListID = `-- name: GetPointsByListID :many
+SELECT point_id, list_id, content, position, checked, created_at, added_by FROM list_points lp
+WHERE list_id = $1
+ORDER BY position ASC
 `
 
-type UserPointsRow struct {
-	ListID    int32     `json:"list_id"`
-	Title     string    `json:"title"`
-	PointID   int32     `json:"point_id"`
-	Point     []string  `json:"point"`
-	Checked   bool      `json:"checked"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func (q *Queries) UserPoints(ctx context.Context, userID int32) ([]UserPointsRow, error) {
-	rows, err := q.db.QueryContext(ctx, userPoints, userID)
+func (q *Queries) GetPointsByListID(ctx context.Context, listID int32) ([]ListPoint, error) {
+	rows, err := q.db.QueryContext(ctx, getPointsByListID, listID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []UserPointsRow{}
+	items := []ListPoint{}
 	for rows.Next() {
-		var i UserPointsRow
+		var i ListPoint
 		if err := rows.Scan(
-			&i.ListID,
-			&i.Title,
 			&i.PointID,
-			pq.Array(&i.Point),
+			&i.ListID,
+			&i.Content,
+			&i.Position,
 			&i.Checked,
 			&i.CreatedAt,
+			&i.AddedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -108,4 +105,14 @@ func (q *Queries) UserPoints(ctx context.Context, userID int32) ([]UserPointsRow
 		return nil, err
 	}
 	return items, nil
+}
+
+const uncheckPoint = `-- name: UncheckPoint :exec
+UPDATE list_points SET checked=false
+WHERE point_id = $1
+`
+
+func (q *Queries) UncheckPoint(ctx context.Context, pointID int32) error {
+	_, err := q.db.ExecContext(ctx, uncheckPoint, pointID)
+	return err
 }

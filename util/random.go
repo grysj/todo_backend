@@ -7,6 +7,7 @@ import (
 )
 
 const chars = "qwertyuiopasdfghjklzxcvbnm"
+const charsExt = "qwertyuiopasdfghjklzxcvbnm1234567890!@,.;: "
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -36,4 +37,18 @@ func RandomUser() string {
 func RandomTitle() string {
 	n := RandomInt(5, 20)
 	return RandomString(int(n))
+}
+
+func RandomPoint() string {
+	var sb strings.Builder
+	k := len(charsExt)
+	n := RandomInt(1, 26)
+
+	for i := int64(0); i <= n; i++ {
+		c := charsExt[rand.Intn(k)]
+		sb.WriteByte(c)
+	}
+
+	return sb.String()
+
 }

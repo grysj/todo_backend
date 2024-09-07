@@ -1,9 +1,11 @@
 -- name: CreatePoint :one
 INSERT INTO list_points (
     list_id,
-    point
+    content,
+    position,
+    added_by
 ) VALUES (
-    $1, $2
+    $1, $2, $3, $4
 ) RETURNING *;
 
 
@@ -17,13 +19,12 @@ UPDATE list_points SET checked=false
 WHERE point_id = $1;
 
 
--- name: UserPoints :many
-SELECT l.list_id, l.title, lp.point_id, lp.point, lp.checked, lp.created_at
-FROM lists l
-JOIN list_points lp ON l.list_id = lp.list_id
-WHERE l.list_id IN (
-    SELECT p.list_id
-    FROM permissions p
-    WHERE p.user_id = $1
-)
-ORDER BY l.created_at ASC, lp.created_at ASC;
+-- name: GetPointsByListID :many
+SELECT * FROM list_points lp
+WHERE list_id = $1
+ORDER BY position ASC;
+
+-- name: GetMaxPositionOrDefault :one
+SELECT COALESCE(MAX(position), 1) AS max_position
+FROM list_points
+WHERE list_id = $1;

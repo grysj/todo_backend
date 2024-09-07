@@ -55,3 +55,15 @@ func (q *Queries) GetUser(ctx context.Context, userID int32) (User, error) {
 	err := row.Scan(&i.UserID, &i.Username, &i.CreatedAt)
 	return i, err
 }
+
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT user_id, username, created_at FROM users
+WHERE username = $1
+`
+
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
+	var i User
+	err := row.Scan(&i.UserID, &i.Username, &i.CreatedAt)
+	return i, err
+}

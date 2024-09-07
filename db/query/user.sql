@@ -15,3 +15,7 @@ WHERE user_id=$1;
 
 -- name: CountUsers :one
 SELECT count(*) FROM users;
+
+-- name: GetUserByUsername :one
+SELECT * FROM users
+WHERE username = $1;

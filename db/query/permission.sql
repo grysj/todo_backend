@@ -1,10 +1,36 @@
--- name: AddPermission :one
+-- name: CreatePermission :one
 INSERT INTO permissions (
+    from_user,
+    to_user,
     list_id,
-    user_id
+    perm_type
 ) VALUES (
-    $1, $2
+    $1, $2, $3, $4
 ) RETURNING *;
 
+
+-- name: CheckUserPermission :one
+SELECT * FROM permissions
+WHERE to_user = $1;
+
+
+-- name: ListPermissions :many
+SELECT p.to_user, p.perm_type FROM permissions p
+WHERE p.list_id = $1;
+
+
+
+-- name: ChangePermission :one
+UPDATE permissions
+SET
+    from_user = $1,
+    to_user = $2,
+    perm_type = $3,
+    created_at = now()
+WHERE list_id = $4
+RETURNING *;
+
+
 -- name: DeletePermission :exec
-DELETE FROM permissions WHERE list_id=$1 AND user_id=$2;
+DELETE from permissions p
+WHERE p.permission_id = $1;

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createList = `-- name: CreateList :one
@@ -65,4 +66,46 @@ func (q *Queries) GetList(ctx context.Context, listID int32) (List, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getListsByUserPermission = `-- name: GetListsByUserPermission :many
+SELECT l.list_id, l.title, l.created_at
+FROM lists l
+JOIN permissions p ON l.list_id = p.list_id
+WHERE p.to_user = $1
+  AND p.perm_type = $2
+`
+
+type GetListsByUserPermissionParams struct {
+	ToUser   int32 `json:"to_user"`
+	PermType int32 `json:"perm_type"`
+}
+
+type GetListsByUserPermissionRow struct {
+	ListID    int32     `json:"list_id"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (q *Queries) GetListsByUserPermission(ctx context.Context, arg GetListsByUserPermissionParams) ([]GetListsByUserPermissionRow, error) {
+	rows, err := q.db.QueryContext(ctx, getListsByUserPermission, arg.ToUser, arg.PermType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetListsByUserPermissionRow{}
+	for rows.Next() {
+		var i GetListsByUserPermissionRow
+		if err := rows.Scan(&i.ListID, &i.Title, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

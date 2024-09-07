@@ -9,42 +9,138 @@ import (
 	"context"
 )
 
-const addPermission = `-- name: AddPermission :one
-INSERT INTO permissions (
-    list_id,
-    user_id
-) VALUES (
-    $1, $2
-) RETURNING permission_id, list_id, user_id, created_at
+const changePermission = `-- name: ChangePermission :one
+UPDATE permissions
+SET
+    from_user = $1,
+    to_user = $2,
+    perm_type = $3,
+    created_at = now()
+WHERE list_id = $4
+RETURNING permission_id, from_user, to_user, list_id, perm_type, created_at
 `
 
-type AddPermissionParams struct {
-	ListID int32 `json:"list_id"`
-	UserID int32 `json:"user_id"`
+type ChangePermissionParams struct {
+	FromUser int32 `json:"from_user"`
+	ToUser   int32 `json:"to_user"`
+	PermType int32 `json:"perm_type"`
+	ListID   int32 `json:"list_id"`
 }
 
-func (q *Queries) AddPermission(ctx context.Context, arg AddPermissionParams) (Permission, error) {
-	row := q.db.QueryRowContext(ctx, addPermission, arg.ListID, arg.UserID)
+func (q *Queries) ChangePermission(ctx context.Context, arg ChangePermissionParams) (Permission, error) {
+	row := q.db.QueryRowContext(ctx, changePermission,
+		arg.FromUser,
+		arg.ToUser,
+		arg.PermType,
+		arg.ListID,
+	)
 	var i Permission
 	err := row.Scan(
 		&i.PermissionID,
+		&i.FromUser,
+		&i.ToUser,
 		&i.ListID,
-		&i.UserID,
+		&i.PermType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const checkUserPermission = `-- name: CheckUserPermission :one
+SELECT permission_id, from_user, to_user, list_id, perm_type, created_at FROM permissions
+WHERE to_user = $1
+`
+
+func (q *Queries) CheckUserPermission(ctx context.Context, toUser int32) (Permission, error) {
+	row := q.db.QueryRowContext(ctx, checkUserPermission, toUser)
+	var i Permission
+	err := row.Scan(
+		&i.PermissionID,
+		&i.FromUser,
+		&i.ToUser,
+		&i.ListID,
+		&i.PermType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createPermission = `-- name: CreatePermission :one
+INSERT INTO permissions (
+    from_user,
+    to_user,
+    list_id,
+    perm_type
+) VALUES (
+    $1, $2, $3, $4
+) RETURNING permission_id, from_user, to_user, list_id, perm_type, created_at
+`
+
+type CreatePermissionParams struct {
+	FromUser int32 `json:"from_user"`
+	ToUser   int32 `json:"to_user"`
+	ListID   int32 `json:"list_id"`
+	PermType int32 `json:"perm_type"`
+}
+
+func (q *Queries) CreatePermission(ctx context.Context, arg CreatePermissionParams) (Permission, error) {
+	row := q.db.QueryRowContext(ctx, createPermission,
+		arg.FromUser,
+		arg.ToUser,
+		arg.ListID,
+		arg.PermType,
+	)
+	var i Permission
+	err := row.Scan(
+		&i.PermissionID,
+		&i.FromUser,
+		&i.ToUser,
+		&i.ListID,
+		&i.PermType,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const deletePermission = `-- name: DeletePermission :exec
-DELETE FROM permissions WHERE list_id=$1 AND user_id=$2
+DELETE from permissions p
+WHERE p.permission_id = $1
 `
 
-type DeletePermissionParams struct {
-	ListID int32 `json:"list_id"`
-	UserID int32 `json:"user_id"`
+func (q *Queries) DeletePermission(ctx context.Context, permissionID int32) error {
+	_, err := q.db.ExecContext(ctx, deletePermission, permissionID)
+	return err
 }
 
-func (q *Queries) DeletePermission(ctx context.Context, arg DeletePermissionParams) error {
-	_, err := q.db.ExecContext(ctx, deletePermission, arg.ListID, arg.UserID)
-	return err
+const listPermissions = `-- name: ListPermissions :many
+SELECT p.to_user, p.perm_type FROM permissions p
+WHERE p.list_id = $1
+`
+
+type ListPermissionsRow struct {
+	ToUser   int32 `json:"to_user"`
+	PermType int32 `json:"perm_type"`
+}
+
+func (q *Queries) ListPermissions(ctx context.Context, listID int32) ([]ListPermissionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPermissions, listID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPermissionsRow{}
+	for rows.Next() {
+		var i ListPermissionsRow
+		if err := rows.Scan(&i.ToUser, &i.PermType); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

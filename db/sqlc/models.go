@@ -18,16 +18,25 @@ type List struct {
 type ListPoint struct {
 	PointID   int32     `json:"point_id"`
 	ListID    int32     `json:"list_id"`
-	Point     []string  `json:"point"`
+	Content   string    `json:"content"`
+	Position  int32     `json:"position"`
 	Checked   bool      `json:"checked"`
 	CreatedAt time.Time `json:"created_at"`
+	AddedBy   int32     `json:"added_by"`
 }
 
 type Permission struct {
 	PermissionID int32     `json:"permission_id"`
+	FromUser     int32     `json:"from_user"`
+	ToUser       int32     `json:"to_user"`
 	ListID       int32     `json:"list_id"`
-	UserID       int32     `json:"user_id"`
+	PermType     int32     `json:"perm_type"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type PermissionType struct {
+	TypeID      int32  `json:"type_id"`
+	Description string `json:"description"`
 }
 
 type User struct {

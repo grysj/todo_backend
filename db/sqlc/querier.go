@@ -9,19 +9,25 @@ import (
 )
 
 type Querier interface {
-	AddPermission(ctx context.Context, arg AddPermissionParams) (Permission, error)
+	ChangePermission(ctx context.Context, arg ChangePermissionParams) (Permission, error)
 	CheckPoint(ctx context.Context, pointID int32) error
+	CheckUserPermission(ctx context.Context, toUser int32) (Permission, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
+	CreatePermission(ctx context.Context, arg CreatePermissionParams) (Permission, error)
 	CreatePoint(ctx context.Context, arg CreatePointParams) (ListPoint, error)
 	CreateUser(ctx context.Context, username string) (User, error)
-	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
+	DeletePermission(ctx context.Context, permissionID int32) error
 	DeleteUser(ctx context.Context, userID int32) error
 	EditTile(ctx context.Context, arg EditTileParams) error
 	GetList(ctx context.Context, listID int32) (List, error)
+	GetListsByUserPermission(ctx context.Context, arg GetListsByUserPermissionParams) ([]GetListsByUserPermissionRow, error)
+	GetMaxPositionOrDefault(ctx context.Context, listID int32) (interface{}, error)
+	GetPointsByListID(ctx context.Context, listID int32) ([]ListPoint, error)
 	GetUser(ctx context.Context, userID int32) (User, error)
+	GetUserByUsername(ctx context.Context, username string) (User, error)
+	ListPermissions(ctx context.Context, listID int32) ([]ListPermissionsRow, error)
 	UncheckPoint(ctx context.Context, pointID int32) error
-	UserPoints(ctx context.Context, userID int32) ([]UserPointsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
