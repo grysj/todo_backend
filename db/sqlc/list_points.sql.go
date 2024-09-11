@@ -58,7 +58,7 @@ func (q *Queries) CreatePoint(ctx context.Context, arg CreatePointParams) (ListP
 }
 
 const getMaxPositionOrDefault = `-- name: GetMaxPositionOrDefault :one
-SELECT COALESCE(MAX(position), 1) AS max_position
+SELECT COALESCE(MAX(position), 0) AS max_position
 FROM list_points
 WHERE list_id = $1
 `

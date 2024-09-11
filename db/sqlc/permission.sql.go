@@ -46,13 +46,30 @@ func (q *Queries) ChangePermission(ctx context.Context, arg ChangePermissionPara
 	return i, err
 }
 
-const checkUserPermission = `-- name: CheckUserPermission :one
+const chechIfUserPermitted = `-- name: ChechIfUserPermitted :one
+SELECT COALESCE(4, p.perm_type ) FROM permissions p
+WHERE to_user = $1 AND list_id = $2
+`
+
+type ChechIfUserPermittedParams struct {
+	ToUser int32 `json:"to_user"`
+	ListID int32 `json:"list_id"`
+}
+
+func (q *Queries) ChechIfUserPermitted(ctx context.Context, arg ChechIfUserPermittedParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, chechIfUserPermitted, arg.ToUser, arg.ListID)
+	var perm_type int32
+	err := row.Scan(&perm_type)
+	return perm_type, err
+}
+
+const checkUserPermissions = `-- name: CheckUserPermissions :one
 SELECT permission_id, from_user, to_user, list_id, perm_type, created_at FROM permissions
 WHERE to_user = $1
 `
 
-func (q *Queries) CheckUserPermission(ctx context.Context, toUser int32) (Permission, error) {
-	row := q.db.QueryRowContext(ctx, checkUserPermission, toUser)
+func (q *Queries) CheckUserPermissions(ctx context.Context, toUser int32) (Permission, error) {
+	row := q.db.QueryRowContext(ctx, checkUserPermissions, toUser)
 	var i Permission
 	err := row.Scan(
 		&i.PermissionID,

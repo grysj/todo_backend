@@ -25,6 +25,6 @@ WHERE list_id = $1
 ORDER BY position ASC;
 
 -- name: GetMaxPositionOrDefault :one
-SELECT COALESCE(MAX(position), 1) AS max_position
+SELECT COALESCE(MAX(position), 0) AS max_position
 FROM list_points
 WHERE list_id = $1;

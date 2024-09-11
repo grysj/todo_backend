@@ -9,10 +9,14 @@ INSERT INTO permissions (
 ) RETURNING *;
 
 
--- name: CheckUserPermission :one
+-- name: CheckUserPermissions :one
 SELECT * FROM permissions
 WHERE to_user = $1;
 
+
+-- name: ChechIfUserPermitted :one
+SELECT COALESCE(4, p.perm_type ) FROM permissions p
+WHERE to_user = $1 AND list_id = $2;
 
 -- name: ListPermissions :many
 SELECT p.to_user, p.perm_type FROM permissions p
