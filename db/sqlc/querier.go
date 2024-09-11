@@ -10,8 +10,9 @@ import (
 
 type Querier interface {
 	ChangePermission(ctx context.Context, arg ChangePermissionParams) (Permission, error)
+	ChechIfUserPermitted(ctx context.Context, arg ChechIfUserPermittedParams) (int32, error)
 	CheckPoint(ctx context.Context, pointID int32) error
-	CheckUserPermission(ctx context.Context, toUser int32) (Permission, error)
+	CheckUserPermissions(ctx context.Context, toUser int32) (Permission, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) (Permission, error)
