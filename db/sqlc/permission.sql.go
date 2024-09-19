@@ -9,31 +9,23 @@ import (
 	"context"
 )
 
-const changePermission = `-- name: ChangePermission :one
-UPDATE permissions
-SET
-    from_user = $1,
-    to_user = $2,
-    perm_type = $3,
-    created_at = now()
-WHERE list_id = $4
+const addPermission = `-- name: AddPermission :one
+INSERT INTO permissions (
+    from_user,
+    to_user,
+    perm_type)
+VALUES ($1, $2, $3)
 RETURNING permission_id, from_user, to_user, list_id, perm_type, created_at
 `
 
-type ChangePermissionParams struct {
+type AddPermissionParams struct {
 	FromUser int32 `json:"from_user"`
 	ToUser   int32 `json:"to_user"`
 	PermType int32 `json:"perm_type"`
-	ListID   int32 `json:"list_id"`
 }
 
-func (q *Queries) ChangePermission(ctx context.Context, arg ChangePermissionParams) (Permission, error) {
-	row := q.db.QueryRowContext(ctx, changePermission,
-		arg.FromUser,
-		arg.ToUser,
-		arg.PermType,
-		arg.ListID,
-	)
+func (q *Queries) AddPermission(ctx context.Context, arg AddPermissionParams) (Permission, error) {
+	row := q.db.QueryRowContext(ctx, addPermission, arg.FromUser, arg.ToUser, arg.PermType)
 	var i Permission
 	err := row.Scan(
 		&i.PermissionID,
@@ -46,18 +38,18 @@ func (q *Queries) ChangePermission(ctx context.Context, arg ChangePermissionPara
 	return i, err
 }
 
-const chechIfUserPermitted = `-- name: ChechIfUserPermitted :one
+const checkUserPermission = `-- name: CheckUserPermission :one
 SELECT COALESCE(4, p.perm_type ) FROM permissions p
-WHERE to_user = $1 AND list_id = $2
+WHERE from_user = $1 AND list_id = $2
 `
 
-type ChechIfUserPermittedParams struct {
-	ToUser int32 `json:"to_user"`
-	ListID int32 `json:"list_id"`
+type CheckUserPermissionParams struct {
+	FromUser int32 `json:"from_user"`
+	ListID   int32 `json:"list_id"`
 }
 
-func (q *Queries) ChechIfUserPermitted(ctx context.Context, arg ChechIfUserPermittedParams) (int32, error) {
-	row := q.db.QueryRowContext(ctx, chechIfUserPermitted, arg.ToUser, arg.ListID)
+func (q *Queries) CheckUserPermission(ctx context.Context, arg CheckUserPermissionParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, checkUserPermission, arg.FromUser, arg.ListID)
 	var perm_type int32
 	err := row.Scan(&perm_type)
 	return perm_type, err
@@ -126,6 +118,21 @@ WHERE p.permission_id = $1
 
 func (q *Queries) DeletePermission(ctx context.Context, permissionID int32) error {
 	_, err := q.db.ExecContext(ctx, deletePermission, permissionID)
+	return err
+}
+
+const editPermission = `-- name: EditPermission :exec
+UPDATE permissions SET perm_type = $2
+WHERE permission_id = $1
+`
+
+type EditPermissionParams struct {
+	PermissionID int32 `json:"permission_id"`
+	PermType     int32 `json:"perm_type"`
+}
+
+func (q *Queries) EditPermission(ctx context.Context, arg EditPermissionParams) error {
+	_, err := q.db.ExecContext(ctx, editPermission, arg.PermissionID, arg.PermType)
 	return err
 }
 

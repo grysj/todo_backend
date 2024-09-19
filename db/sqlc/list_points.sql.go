@@ -9,13 +9,48 @@ import (
 	"context"
 )
 
-const checkPoint = `-- name: CheckPoint :exec
-UPDATE list_points SET checked=true
+const changePointCheck = `-- name: ChangePointCheck :exec
+UPDATE list_points SET checked=$2
 WHERE point_id = $1
 `
 
-func (q *Queries) CheckPoint(ctx context.Context, pointID int32) error {
-	_, err := q.db.ExecContext(ctx, checkPoint, pointID)
+type ChangePointCheckParams struct {
+	PointID int32 `json:"point_id"`
+	Checked bool  `json:"checked"`
+}
+
+func (q *Queries) ChangePointCheck(ctx context.Context, arg ChangePointCheckParams) error {
+	_, err := q.db.ExecContext(ctx, changePointCheck, arg.PointID, arg.Checked)
+	return err
+}
+
+const changePointContent = `-- name: ChangePointContent :exec
+UPDATE list_points SET content = $2
+WHERE point_id = $1
+`
+
+type ChangePointContentParams struct {
+	PointID int32  `json:"point_id"`
+	NewText string `json:"new_text"`
+}
+
+func (q *Queries) ChangePointContent(ctx context.Context, arg ChangePointContentParams) error {
+	_, err := q.db.ExecContext(ctx, changePointContent, arg.PointID, arg.NewText)
+	return err
+}
+
+const changePointPosition = `-- name: ChangePointPosition :exec
+UPDATE list_points SET position = $2
+WHERE point_id = $1
+`
+
+type ChangePointPositionParams struct {
+	PointID int32 `json:"point_id"`
+	NewPos  int32 `json:"new_pos"`
+}
+
+func (q *Queries) ChangePointPosition(ctx context.Context, arg ChangePointPositionParams) error {
+	_, err := q.db.ExecContext(ctx, changePointPosition, arg.PointID, arg.NewPos)
 	return err
 }
 
@@ -57,15 +92,25 @@ func (q *Queries) CreatePoint(ctx context.Context, arg CreatePointParams) (ListP
 	return i, err
 }
 
+const deletePoint = `-- name: DeletePoint :exec
+DELETE FROM list_points
+WHERE point_id = $1
+`
+
+func (q *Queries) DeletePoint(ctx context.Context, pointID int32) error {
+	_, err := q.db.ExecContext(ctx, deletePoint, pointID)
+	return err
+}
+
 const getMaxPositionOrDefault = `-- name: GetMaxPositionOrDefault :one
-SELECT COALESCE(MAX(position), 0) AS max_position
+SELECT COALESCE(MAX(position), 0)::int AS max_position
 FROM list_points
 WHERE list_id = $1
 `
 
-func (q *Queries) GetMaxPositionOrDefault(ctx context.Context, listID int32) (interface{}, error) {
+func (q *Queries) GetMaxPositionOrDefault(ctx context.Context, listID int32) (int32, error) {
 	row := q.db.QueryRowContext(ctx, getMaxPositionOrDefault, listID)
-	var max_position interface{}
+	var max_position int32
 	err := row.Scan(&max_position)
 	return max_position, err
 }
@@ -105,14 +150,4 @@ func (q *Queries) GetPointsByListID(ctx context.Context, listID int32) ([]ListPo
 		return nil, err
 	}
 	return items, nil
-}
-
-const uncheckPoint = `-- name: UncheckPoint :exec
-UPDATE list_points SET checked=false
-WHERE point_id = $1
-`
-
-func (q *Queries) UncheckPoint(ctx context.Context, pointID int32) error {
-	_, err := q.db.ExecContext(ctx, uncheckPoint, pointID)
-	return err
 }

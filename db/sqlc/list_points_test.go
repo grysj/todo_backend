@@ -1,9 +1,10 @@
 package db
 
 import (
-	"backend/util"
 	"context"
 	"testing"
+
+	"github.com/grysj/todo_backend/util"
 
 	"github.com/stretchr/testify/require"
 )

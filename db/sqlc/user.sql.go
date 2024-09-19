@@ -9,6 +9,21 @@ import (
 	"context"
 )
 
+const checkIfUsernameExists = `-- name: CheckIfUsernameExists :one
+SELECT EXISTS (
+  SELECT 1
+  FROM users
+  WHERE username = $1
+) AS exists
+`
+
+func (q *Queries) CheckIfUsernameExists(ctx context.Context, username string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkIfUsernameExists, username)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const countUsers = `-- name: CountUsers :one
 SELECT count(*) FROM users
 `

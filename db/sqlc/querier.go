@@ -9,9 +9,12 @@ import (
 )
 
 type Querier interface {
-	ChangePermission(ctx context.Context, arg ChangePermissionParams) (Permission, error)
-	ChechIfUserPermitted(ctx context.Context, arg ChechIfUserPermittedParams) (int32, error)
-	CheckPoint(ctx context.Context, pointID int32) error
+	AddPermission(ctx context.Context, arg AddPermissionParams) (Permission, error)
+	ChangePointCheck(ctx context.Context, arg ChangePointCheckParams) error
+	ChangePointContent(ctx context.Context, arg ChangePointContentParams) error
+	ChangePointPosition(ctx context.Context, arg ChangePointPositionParams) error
+	CheckIfUsernameExists(ctx context.Context, username string) (bool, error)
+	CheckUserPermission(ctx context.Context, arg CheckUserPermissionParams) (int32, error)
 	CheckUserPermissions(ctx context.Context, toUser int32) (Permission, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
@@ -19,16 +22,17 @@ type Querier interface {
 	CreatePoint(ctx context.Context, arg CreatePointParams) (ListPoint, error)
 	CreateUser(ctx context.Context, username string) (User, error)
 	DeletePermission(ctx context.Context, permissionID int32) error
+	DeletePoint(ctx context.Context, pointID int32) error
 	DeleteUser(ctx context.Context, userID int32) error
+	EditPermission(ctx context.Context, arg EditPermissionParams) error
 	EditTile(ctx context.Context, arg EditTileParams) error
 	GetList(ctx context.Context, listID int32) (List, error)
 	GetListsByUserPermission(ctx context.Context, arg GetListsByUserPermissionParams) ([]GetListsByUserPermissionRow, error)
-	GetMaxPositionOrDefault(ctx context.Context, listID int32) (interface{}, error)
+	GetMaxPositionOrDefault(ctx context.Context, listID int32) (int32, error)
 	GetPointsByListID(ctx context.Context, listID int32) ([]ListPoint, error)
 	GetUser(ctx context.Context, userID int32) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	ListPermissions(ctx context.Context, listID int32) ([]ListPermissionsRow, error)
-	UncheckPoint(ctx context.Context, pointID int32) error
 }
 
 var _ Querier = (*Queries)(nil)
